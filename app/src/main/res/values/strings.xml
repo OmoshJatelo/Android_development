@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">AndroidDemo2</string>
+    <string name="welcome_greeting">Welcome and Stay Sedulous</string>
+    <string name="reply_1">REPLY  TO OTI</string>
+    <string name="reply_2">REPLY TO ONYI</string>
+    <string name="reply_3">REPLY TO OCHI</string>
+    <string name="compose">Compose Email</string>
+</resources>
