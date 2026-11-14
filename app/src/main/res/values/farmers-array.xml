@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="crops">
+        <item>Maize</item>
+        <item>Beans</item>
+        <item>Tea</item>
+        <item>Coffee</item>
+        <item>Potatoes</item>
+        <item>Tomatoes</item>
+    </string-array>
+</resources>
