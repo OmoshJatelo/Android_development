@@ -1,9 +1,13 @@
 package com.smart.farmerrecords;
 
+import android.content.Intent;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Process;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -11,16 +15,22 @@ import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
 /**
  * Lab_01_hm1: farmer records, validation and the Activity lifecycle.
+ * Lab 3: Options menu, navigation and Toast feedback.
  *
  * Connection: input (EditText/Spinner) -> RecordValidator -> FarmerRecord (model)
  *             -> RecordsViewModel.records -> RecordAdapter -> ListView (what the user sees)
@@ -45,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvTrace;
     private ScrollView svTrace;
     private ListView lvRecords;
+
+    private Snackbar activeSnackbar;
 
     // ------------------------------------------------------------------ LIFECYCLE
     @Override
@@ -71,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
         adapter = new RecordAdapter(this, vm.records);
         lvRecords.setAdapter(adapter);
 
-        btnAdd.setOnClickListener(v -> onAddClicked());
+        btnAdd.setOnClickListener(v -> addRecordFromForm());
         btnClearTrace.setOnClickListener(v -> {
             vm.trace.clear();
             renderTrace();
@@ -113,8 +125,62 @@ public class MainActivity extends AppCompatActivity {
         trace("onRestoreInstanceState  (draft restored)");
     }
 
-    // ------------------------------------------------------------------ ADD RECORD
-    private void onAddClicked() {
+    // ------------------------------------------------------------------ OPTIONS MENU
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if present.
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        Log.d("MenuTrace", "selected=" + entryName(id));
+
+        if (id == R.id.action_add_record) {
+            // Option to submit input from the form
+            Log.d("MenuTrace", "  handler=addRecordFromForm");
+            addRecordFromForm();
+            return true;
+        } else if (id == R.id.action_view_records) {
+            // Option to navigate to the secondary RecordsActivity screen
+            Log.d("MenuTrace", "  handler=openRecordsScreen");
+            openRecordsScreen();
+            return true;
+        } else if (id == R.id.action_clear_form) {
+            // Option to clear the current draft input fields with confirmation
+            Log.d("MenuTrace", "  handler=clearFormWithWarning");
+            clearFormWithWarning();
+            return true;
+        } else if (id == R.id.action_about) {
+            // Option to show information dialog about the app
+            Log.d("MenuTrace", "  handler=showAboutDialog");
+            showAboutDialog();
+            return true;
+        } else {
+            // Default handler for unhandled options (including action_export placeholder)
+            Log.w("MenuTrace", "  UNHANDLED item " + entryName(id));
+            toast(R.string.msg_not_available);
+            return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private String entryName(int id) {
+        try {
+            return getResources().getResourceEntryName(id);
+        } catch (Resources.NotFoundException e) {
+            return "unknown(" + id + ")";
+        }
+    }
+
+    // ------------------------------------------------------------------ ACTIONS
+    /** Refactored add record logic shared by the Add Button and Options Menu item. */
+    private void addRecordFromForm() {
+        if (activeSnackbar != null) {
+            activeSnackbar.dismiss();
+            activeSnackbar = null;
+        }
         etFarmer.setError(null);
         etQty.setError(null);
 
@@ -126,6 +192,11 @@ public class MainActivity extends AppCompatActivity {
             bad.setError(r.message);
             bad.requestFocus();
             Log.d("Validation", "REJECTED: " + r.message);
+
+            activeSnackbar = Snackbar.make(findViewById(android.R.id.content),
+                    r.message, Snackbar.LENGTH_INDEFINITE)
+                    .setAction(R.string.snackbar_dismiss, v -> { });
+            activeSnackbar.show();
             return;
         }
 
@@ -136,15 +207,74 @@ public class MainActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
         lvRecords.smoothScrollToPosition(vm.records.size() - 1);
         refreshCount();
-        Log.d("Validation", "ACCEPTED: #" + rec.id + " " + rec.farmer + " " + rec.quantityKg + " kg");
+        Log.d("Validation", "ACCEPTED: #" + rec.id);
 
         etFarmer.setText("");
         etQty.setText("");
         etFarmer.requestFocus();
+
+        toast(getString(R.string.msg_record_added, rec.id));
+    }
+
+    /** Opens the secondary RecordsActivity displaying recorded harvest lines. */
+    private void openRecordsScreen() {
+        ArrayList<String> lines = new ArrayList<>();
+        for (FarmerRecord rec : vm.records) {
+            lines.add(String.format(Locale.US, "#%d  %s  -  %s  -  %.2f kg",
+                    rec.id, rec.farmer, rec.crop, rec.quantityKg));
+        }
+        Intent i = new Intent(this, RecordsActivity.class);
+        i.putStringArrayListExtra(RecordsActivity.EXTRA_RECORD_LINES, lines);
+        i.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(i);
+    }
+
+    /** Warns user before clearing non-blank draft fields. */
+    private void clearFormWithWarning() {
+        boolean hasFarmerText = !etFarmer.getText().toString().trim().isEmpty();
+        boolean hasQtyText = !etQty.getText().toString().trim().isEmpty();
+
+        if (hasFarmerText || hasQtyText) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.dialog_discard_title)
+                    .setMessage(R.string.dialog_discard_message)
+                    .setPositiveButton(R.string.btn_discard, (dialog, which) -> {
+                        etFarmer.setText("");
+                        etQty.setText("");
+                        etFarmer.setError(null);
+                        etQty.setError(null);
+                        if (activeSnackbar != null) {
+                            activeSnackbar.dismiss();
+                            activeSnackbar = null;
+                        }
+                        toast(R.string.msg_form_cleared);
+                    })
+                    .setNegativeButton(R.string.btn_keep, null)
+                    .show();
+        } else {
+            toast(R.string.msg_form_empty);
+        }
+    }
+
+    /** Displays the About dialog. */
+    private void showAboutDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.about_title)
+                .setMessage(R.string.about_message)
+                .setPositiveButton(R.string.btn_ok, null)
+                .show();
+    }
+
+    private void toast(int resId) {
+        Toast.makeText(this, resId, Toast.LENGTH_SHORT).show();
+    }
+
+    private void toast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     private void refreshCount() {
-        tvCount.setText("Records: " + vm.records.size());
+        tvCount.setText(getString(R.string.records_count, vm.records.size()));
     }
 
     // ------------------------------------------------------------------ TRACE

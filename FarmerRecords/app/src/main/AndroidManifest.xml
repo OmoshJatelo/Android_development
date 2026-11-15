@@ -18,5 +18,10 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".RecordsActivity"
+            android:exported="false"
+            android:launchMode="singleTop" />
+
     </application>
 </manifest>

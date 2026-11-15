@@ -1,3 +1,23 @@
 <resources>
-    <string name="app_name">FarmerRecords</string>
+    <string name="app_name">Farmer Records</string>
+    <string name="menu_add_record">Add record</string>
+    <string name="menu_view_records">View records</string>
+    <string name="menu_clear_form">Clear form</string>
+    <string name="menu_about">About</string>
+    <string name="menu_export">Export (coming soon)</string>
+    <string name="title_records">Records</string>
+    <string name="msg_form_empty">Form is already empty</string>
+    <string name="msg_form_cleared">Form cleared</string>
+    <string name="msg_not_available">That action is not available yet</string>
+    <string name="dialog_discard_title">Discard this draft?</string>
+    <string name="dialog_discard_message">The text you typed has not been saved as a record.</string>
+    <string name="btn_discard">Discard</string>
+    <string name="btn_keep">Keep editing</string>
+    <string name="about_title">About</string>
+    <string name="about_message">Farmer Records (Lab 3 demo)\nMavunoLink coursework app.\nAll data is synthetic and kept in memory only.</string>
+    <string name="btn_ok">OK</string>
+    <string name="snackbar_dismiss">Dismiss</string>
+    <string name="records_count">Records: %1$d</string>
+    <string name="records_empty">No records yet. Use Add record on the previous screen.</string>
+    <string name="msg_record_added">Record #%1$d added</string>
 </resources>
